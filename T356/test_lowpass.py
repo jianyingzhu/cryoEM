@@ -1,6 +1,6 @@
 from math import sqrt
 import numpy as np
-from numpy.fft import fftn, ifftn, fftshift, ifftshift
+from numpy.fft import rfftn, irfftn, fftshift, ifftshift
 import mrcfile
 
 def mrcread(fname, ret_voxel_size = False):
@@ -16,23 +16,22 @@ def mrcsave(fname, data, voxel_size = 0.):
         mrc.voxel_size = voxel_size
 
 def lowpass(x, freq, voxel_size):
-    fx = fftn(fftshift(x), norm = 'ortho')
+    fx = rfftn(fftshift(x), norm = 'ortho')
 
     n = x.shape[0]
     assert(x.shape == (n, n, n))
     for i in range(n):
         for j in range(n):
-            for k in range(n):
+            for k in range(n // 2 + 1):
                 ii = i if i < n // 2 else i - n
                 jj = j if j < n // 2 else j - n
-                kk = k if k < n // 2 else k - n
+                kk = k
                 radius = sqrt(ii ** 2 + jj ** 2 + kk ** 2)
                 if n * voxel_size < freq * radius:
                     fx[i, j, k] = 0
 
-    x = ifftshift(ifftn(fx, norm = 'ortho'))
-    assert(np.linalg.norm(x.imag) < 1e-6)
-    return x.real
+    x = ifftshift(irfftn(fx, norm = 'ortho'))
+    return x
 
 if __name__ == '__main__':
     (data, voxel_size) = mrcread('../data/CNG_Reference_000_B_Final.mrc', True)
